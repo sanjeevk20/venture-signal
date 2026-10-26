@@ -1,0 +1,29 @@
+import {createRequire} from 'node:module';
+import {createServer} from 'node:http';
+import {readFile} from 'node:fs/promises';
+import {resolve,sep} from 'node:path';
+import assert from 'node:assert/strict';
+const require=createRequire(process.env.BROWSER_MODULE_ROOT+'/package.json');
+const {chromium}=require('playwright');
+const root=resolve('dist');
+const server=createServer(async(req,res)=>{try{const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);const file=resolve(root,'.'+(pathname==='/'?'/index.html':pathname));if(!file.startsWith(root+sep)){res.writeHead(403);res.end();return}const data=await readFile(file);res.writeHead(200,{'Content-Type':file.endsWith('.mjs')||file.endsWith('.js')?'application/javascript':file.endsWith('.json')?'application/json':'text/html'});res.end(data)}catch{res.writeHead(404);res.end()}});
+await new Promise(r=>server.listen(0,'127.0.0.1',r));
+const browser=await chromium.launch({headless:true});
+try{
+ const page=await browser.newPage({viewport:{width:390,height:844}});
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.route('**/signals.json',route=>route.fulfill({json:{generated_at:'2026-10-26T08:00:00Z',signals:[{country:'India',topic:'Small business & ecommerce',title:'India shop research example',url:'https://news.google.com/example',publisher:'Test publisher',published_at:'2026-10-26T07:00:00Z'},{country:'United States',topic:'AI & automation',title:'US automation example',url:'https://news.google.com/other',publisher:'Test publisher',published_at:'2026-10-26T07:00:00Z'}],errors:[]}}));
+ await page.route('**/config.json',route=>route.fulfill({json:{apiBaseUrl:''}}));
+ await page.goto(`http://127.0.0.1:${server.address().port}/`,{waitUntil:'domcontentloaded'});
+ await page.getByText('India shop research example').waitFor();
+ assert.equal(await page.locator('#generateIdeas').isDisabled(),true);
+ await page.selectOption('#dynamicCountry','United States');await page.getByText('US automation example').waitFor();
+ assert.equal(await page.getByText('India shop research example').count(),0);
+ await page.selectOption('#country','India');assert.equal(await page.locator('#grid article').count(),10);
+ await page.fill('#search','workflow');assert.equal(await page.locator('#grid article').count(),1);
+ await page.locator('#grid [data-view]').click();assert.equal(await page.locator('dialog').isVisible(),true);
+ await page.keyboard.press('Escape');assert.equal(await page.locator('dialog').isVisible(),false);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false,'Mobile layout must not overflow horizontally');
+ assert.deepEqual(errors,[]);
+ console.log('Mobile browser smoke checks passed: news country filters, pending backend, idea filters and dialog.');
+}finally{await browser.close();await new Promise(r=>server.close(r))}
