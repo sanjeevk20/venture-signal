@@ -37,3 +37,11 @@ python3 -m http.server 8000 --directory dist
 ```
 
 Open http://localhost:8000. Feed refresh requires internet access. The GitHub workflow also runs mobile browser tests using fixture feeds and verifies the published JavaScript and data files. Those tests do not validate market demand or third-party service uptime.
+
+## Optional request audit panel
+
+Use **API audit: Off/On** in the header. Logging is off by default. When enabled it shows button clicks, form submissions, filter changes and fetch requests with method, full URL, HTTP status and time to response headers. Local actions are explicitly shown without an API request. Background fetches are separate; only requests started synchronously during an interaction are grouped under that interaction.
+
+The panel keeps up to 100 action groups and 25 requests per group in tab memory. Its on/off preference survives reloads in the same browser session, but log entries do not. Reload while enabled to capture initial data loading. Clear log resets the display; disabling stops recording. Known credential query parameters are redacted. Search terms may be visible in URLs. Headers, request bodies, response contents, navigation, fonts and script downloads are not logged or uploaded.
+
+Published app data: `https://sanjeevk20.github.io/venture-signal/signals.json` and `https://sanjeevk20.github.io/venture-signal/ideas.json`. Live discussion research calls `https://hn.algolia.com/api/v1/search_by_date` and `https://en.wikipedia.org/w/api.php`. News RSS is fetched by GitHub Actions, not by browser button clicks.

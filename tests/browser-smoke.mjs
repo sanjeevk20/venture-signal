@@ -28,6 +28,37 @@ try{
  await page.locator('#grid [data-view]').click();assert.equal(await page.locator('dialog').isVisible(),true);
  await page.keyboard.press('Escape');assert.equal(await page.locator('dialog').isVisible(),false);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false,'Mobile layout must not overflow horizontally');
+ // Verify audit mode observes real fetch calls without changing their responses.
+ assert.equal(await page.locator('#requestAudit').isHidden(),true);
+ await page.locator('#auditToggle').click();
+ await page.locator('#auditClear').click();
+ await page.fill('#aiQuery','Dukaan');await page.locator('#generateIdeas').click();
+ await page.locator('#auditEntries').getByText('Local UI action · No API request recorded.').first().waitFor();
+ assert.equal(await page.locator('#auditEntries .audit-request').count(),0);
+ await page.route('**/hn.algolia.com/api/v1/**',route=>route.fulfill({json:{nbHits:0,hits:[]}}));
+ await page.route('**/en.wikipedia.org/w/api.php?**',route=>route.fulfill({json:['Dukaan',[],[],[]]}));
+ await page.fill('#researchQuery','Dukaan');await page.locator('#researchForm button').click();
+ await page.waitForFunction(()=>document.querySelectorAll('#auditEntries .audit-result').length===4&&[...document.querySelectorAll('#auditEntries .audit-result')].every(el=>el.textContent.includes('HTTP 200')));
+ assert.match(await page.locator('#auditEntries').innerText(),/Click: Analyze idea/);
+ assert.match(await page.locator('#auditEntries').innerText(),/hn.algolia.com/);
+ await page.route('**/audit-fixture?**',route=>route.fulfill({json:{preserved:true}}));
+ const body=await page.evaluate(()=>fetch('audit-fixture?token=secret-value&query=shops').then(r=>r.json()));
+ assert.equal(body.preserved,true);
+ assert.ok(!(await page.locator('#auditEntries').innerText()).includes('secret-value'));
+ assert.match(await page.locator('#auditEntries').innerText(),/redacted/);
+ const count=await page.locator('#auditEntries .audit-request').count();
+ await page.locator('#auditToggle').click();
+ await page.evaluate(()=>fetch('audit-fixture?query=disabled'));
+ await page.locator('#auditToggle').click();
+ assert.equal(await page.locator('#auditEntries .audit-request').count(),count);
+ await page.locator('#auditClear').click();assert.equal(await page.locator('#auditEntries li').count(),0);
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>document.querySelectorAll('#auditEntries .audit-request').length>=2);
+ assert.equal(await page.locator('#requestAudit').isVisible(),true);
+ assert.match(await page.locator('#auditEntries').innerText(),/signals.json/);
+ assert.match(await page.locator('#auditEntries').innerText(),/ideas.json/);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false,'Audit panel must fit on mobile');
+ await page.locator('#auditClose').click();assert.equal(await page.locator('#requestAudit').isHidden(),true);
  assert.deepEqual(errors,[]);
  console.log('Mobile browser smoke checks passed: news country filters, scheduled brief search, idea filters and dialog.');
 }finally{await browser.close();await new Promise(r=>server.close(r))}
