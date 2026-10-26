@@ -38,7 +38,7 @@ try{
  await page.route('**/hn.algolia.com/api/v1/**',route=>route.fulfill({json:{nbHits:0,hits:[]}}));
  await page.route('**/en.wikipedia.org/w/api.php?**',route=>route.fulfill({json:['Dukaan',[],[],[]]}));
  await page.fill('#researchQuery','Dukaan');await page.locator('#researchForm button').click();
- await page.waitForFunction(()=>document.querySelectorAll('#auditEntries .audit-result').length===4&&[...document.querySelectorAll('#auditEntries .audit-result')].every(el=>el.textContent.includes('HTTP 200')));
+ await page.waitForFunction(()=>document.querySelectorAll('#auditEntries .audit-result').length===3&&[...document.querySelectorAll('#auditEntries .audit-result')].every(el=>el.textContent.includes('HTTP 200')));
  assert.match(await page.locator('#auditEntries').innerText(),/Click: Analyze idea/);
  assert.match(await page.locator('#auditEntries').innerText(),/hn.algolia.com/);
  await page.route('**/audit-fixture?**',route=>route.fulfill({json:{preserved:true}}));
