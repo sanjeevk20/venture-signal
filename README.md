@@ -1,52 +1,39 @@
-# Venture Signal
+# Venture Signal — GitHub Actions edition
 
-GitHub Pages frontend with public business-news signals, country filters, browser-saved favorites, comparisons, live Hacker News discussion research, and an optional Cloudflare AI research API.
+The complete app is hosted on GitHub Pages. GitHub Actions supplies scheduled dynamic content. No Cloudflare service, API endpoint, AI subscription or repository secrets are required.
 
-## What works without API keys
+## How it works
 
-- On every deployment and approximately every six hours, GitHub Actions retrieves country-specific Google News RSS headlines and publishes `dist/signals.json` with the Pages artifact. Schedules may be delayed; unavailable feeds are reported in the app.
-- The frontend filters these current headlines by country and topic. Headlines are research signals, not proof of popularity or customer demand.
-- Keyword research retrieves Hacker News / Algolia discussions and Wikipedia background directly from the browser.
-- The original 12-card catalog remains an explicitly illustrative collection; its sample scores are separate from the news and AI results.
+1. On a push to `main`, a manual workflow run, or approximately every six hours, `scripts/refresh-signals.py` fetches country-specific public Google News RSS headlines.
+2. `scripts/build-ideas.mjs` groups the latest headlines by country and topic and creates exploration briefs only for groups with sources. Three editorial business hypotheses cover retail operations, AI automation and local repair/reuse services.
+3. The workflow publishes `signals.json`, `ideas.json` and the app to GitHub Pages. Generated data is in the deployment artifact, not committed back to the repository.
+4. Visitors search the current snapshot instantly in their browser. “Dukaan”, “kirana” and “दुकान” match retail briefs. Country and topic filters apply to both news and briefs.
+5. The separate live Hacker News / Wikipedia research tool remains available for on-demand public discussion searches.
 
-## Activate country-specific AI ideas later
+**These briefs are not AI-generated.** Their suggested customer problems and pilots are editorial templates. Refreshed headlines provide topic context only; full articles have not been read or summarized. News mentions do not establish popularity, country demand or commercial viability. No unsupported market scores or paid research are generated. Empty feeds and unmatched searches show honest empty states.
 
-The AI form stays disabled until a working backend URL is included in the deployment. No browser API key is used.
+## Hosting and refresh
 
-1. Set up a Cloudflare account with Workers and a workers.dev subdomain. No custom domain is required.
-2. Create a Cloudflare API token for deploying Workers to that account (Cloudflare's Edit Workers template; scope it to the intended account).
-3. Open https://github.com/sanjeevk20/venture-signal/settings/secrets/actions and add repository secrets:
-   - `CLOUDFLARE_API_TOKEN`
-   - `CLOUDFLARE_ACCOUNT_ID`
-   - `OPENAI_API_KEY` (an OpenAI API project with model and web-search access and sufficient credits)
-4. Rerun the Pages workflow. It deploys `backend/worker.mjs`, installs the API key as a Worker secret, verifies `/health`, and writes the public endpoint into the Pages artifact's `config.json`.
-5. Open the live app, choose a country, and try “Dukaan”. AI research searches the web, differentiates the company from local shops, and returns ideas, sources, country evidence and pilot experiments. Test a live response before relying on the feature.
+Choose **GitHub Actions** under repository Settings → Pages. The workflow runs automatically on `main` and approximately every six hours. GitHub schedules can be delayed, and public feeds can fail. Published data retains its build timestamp; visitors must refresh the page to load a newer snapshot. To request an earlier refresh, the repository owner can run the workflow manually from Actions.
 
-Cloudflare and OpenAI billing are separate. Set provider budget controls before enabling secrets. No paid research is performed by this repository's scheduled job. The Worker makes AI requests only when a visitor submits research. A public endpoint has a per-IP limit of three requests per minute and a six-hour shared result cache; these are not a guarantee of a monthly spending cap.
+Workflow: https://github.com/sanjeevk20/venture-signal/actions/workflows/pages.yml
+Live app: https://sanjeevk20.github.io/venture-signal/
 
-## Backend behavior
+## No Cloudflare dependency
 
-- `GET /health`: readiness, no credentials.
-- `POST /api/research`: JSON `{ "query": "Dukaan", "country": "India" }`, accepted from `https://sanjeevk20.github.io`.
-- Supported countries: India, United States, United Kingdom, Canada, Australia, Germany, Singapore and United Arab Emirates.
-- Default model: `gpt-4.1-mini`, configurable in `backend/wrangler.jsonc`.
-- Research prompt: `backend/prompt.mjs`. Search terms are sent to OpenAI; public search sources are used for analysis.
-- The server only retains cited URLs that appear in the current provider's actual web-search sources or citation annotations. It drops unsourced ideas, downgrades single-publisher evidence and never substitutes demo results on errors. Country relevance, publication dates and AI claims still need human verification.
-- CORS limits browser use to the app's origin. It is not authentication. GitHub Pages project paths share the same origin.
-- Cache retention is up to six hours; the app shows the original research timestamp when using cached results.
+The Cloudflare deployment step, Worker source and backend configuration have been removed. The app does not read Cloudflare or OpenAI secrets or call an AI backend. Any previously created external Worker or provider account is not deleted by this repository update; this project had not activated one. Previously added repository secrets are unnecessary for this version.
 
-## Deploy GitHub Pages
+GitHub Actions is scheduled computation, not an always-running server. An arbitrary visitor query does not trigger a fresh web crawl or a workflow. Searches filter published briefs. For topics outside the snapshot, the app links to Google News and retains its live discussion-search tool.
 
-In Settings → Pages choose **GitHub Actions**. Push to `main`, run the workflow manually, or wait for the scheduled refresh. The workflow validates logic, refreshes news, runs mobile browser checks, optionally deploys the API, publishes `dist`, and verifies the hosted files. If the three backend secrets are missing, it publishes the frontend with AI research explicitly pending.
-
-## Local checks
+## Local verification
 
 ```sh
 node tests/research.test.mjs
-node tests/backend.test.mjs
+node tests/ideas.test.mjs
 python3 tests/test_signals.py
 python3 scripts/refresh-signals.py
+node scripts/build-ideas.mjs
 python3 -m http.server 8000 --directory dist
 ```
 
-Open http://localhost:8000. Run the feed refresh only with internet access. Browser QA is configured in GitHub Actions with Playwright; fixture-based tests do not prove live AI/provider availability. Source errors are shown instead of fabricated results.
+Open http://localhost:8000. Feed refresh requires internet access. The GitHub workflow also runs mobile browser tests using fixture feeds and verifies the published JavaScript and data files. Those tests do not validate market demand or third-party service uptime.

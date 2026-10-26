@@ -13,10 +13,14 @@ try{
  const page=await browser.newPage({viewport:{width:390,height:844}});
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.route('**/signals.json',route=>route.fulfill({json:{generated_at:'2026-10-26T08:00:00Z',signals:[{country:'India',topic:'Small business & ecommerce',title:'India shop research example',url:'https://news.google.com/example',publisher:'Test publisher',published_at:'2026-10-26T07:00:00Z'},{country:'United States',topic:'AI & automation',title:'US automation example',url:'https://news.google.com/other',publisher:'Test publisher',published_at:'2026-10-26T07:00:00Z'}],errors:[]}}));
- await page.route('**/config.json',route=>route.fulfill({json:{apiBaseUrl:''}}));
+ await page.route('**/ideas.json',route=>route.fulfill({json:{generated_at:'2026-10-26T08:00:00Z',ideas:[{country:'India',topic:'Small business & ecommerce',title:'Digital shop operations pilot — India',keywords:['dukaan','kirana'],evidence_status:'Demand not validated',method:'Template-based exploration brief; not AI-generated',sources:[]}]}}));
  await page.goto(`http://127.0.0.1:${server.address().port}/`,{waitUntil:'domcontentloaded'});
  await page.getByText('India shop research example').waitFor();
- assert.equal(await page.locator('#generateIdeas').isDisabled(),true);
+ await page.getByText('Digital shop operations pilot — India').waitFor();
+ assert.equal(await page.locator('#generateIdeas').isDisabled(),false);
+ await page.fill('#aiQuery','Dukaan');await page.locator('#generateIdeas').click();assert.equal(await page.locator('#aiResults .generated-idea').count(),1);
+ await page.fill('#aiQuery','unrelatedkeyword');await page.locator('#generateIdeas').click();assert.equal(await page.locator('#aiResults .generated-idea').count(),0);
+ await page.fill('#aiQuery','');await page.locator('#generateIdeas').click();
  await page.selectOption('#dynamicCountry','United States');await page.getByText('US automation example').waitFor();
  assert.equal(await page.getByText('India shop research example').count(),0);
  await page.selectOption('#country','India');assert.equal(await page.locator('#grid article').count(),10);
@@ -25,5 +29,5 @@ try{
  await page.keyboard.press('Escape');assert.equal(await page.locator('dialog').isVisible(),false);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false,'Mobile layout must not overflow horizontally');
  assert.deepEqual(errors,[]);
- console.log('Mobile browser smoke checks passed: news country filters, pending backend, idea filters and dialog.');
+ console.log('Mobile browser smoke checks passed: news country filters, scheduled brief search, idea filters and dialog.');
 }finally{await browser.close();await new Promise(r=>server.close(r))}
