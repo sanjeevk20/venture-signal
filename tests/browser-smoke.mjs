@@ -15,6 +15,7 @@ try{
  await page.route('**/signals.json',route=>route.fulfill({json:{generated_at:'2026-10-26T08:00:00Z',signals:[{country:'India',topic:'Small business & ecommerce',title:'India shop research example',url:'https://news.google.com/example',publisher:'Test publisher',published_at:'2026-10-26T07:00:00Z'},{country:'United States',topic:'AI & automation',title:'US automation example',url:'https://news.google.com/other',publisher:'Test publisher',published_at:'2026-10-26T07:00:00Z'}],errors:[]}}));
  await page.route('**/ideas.json',route=>route.fulfill({json:{generated_at:'2026-10-26T08:00:00Z',ideas:[{country:'India',topic:'Small business & ecommerce',title:'Digital shop operations pilot — India',keywords:['dukaan','kirana'],evidence_status:'Demand not validated',method:'Template-based exploration brief; not AI-generated',sources:[]}]}}));
  await page.route('**/reddit.json',route=>route.fulfill({json:{generated_at:'2026-10-26T08:00:00Z',posts:[{title:'Delivery rant with slow service',url:'https://www.reddit.com/r/india/comments/abc/delivery/',subreddit:'india',num_comments:150}],errors:[]}}));
+ await page.route('**/sentiment.json',route=>route.fulfill({json:{generated_at:'2026-10-26T08:00:00Z',items:[{source:'Hacker News',kind:'Comment',title:'Checkout discussion',excerpt:'Frustrated with broken checkout <img id=unsafe-snippet>',url:'https://news.ycombinator.com/item?id=123',matched_keywords:['frustrated','broken']},{source:'GitHub',kind:'Issue report',title:'Broken integration',excerpt:'This is annoying',url:'https://github.com/org/repo/issues/1',matched_keywords:['annoying','broken']}],errors:[]}}));
  await page.goto(`http://127.0.0.1:${server.address().port}/`,{waitUntil:'domcontentloaded'});
  await page.getByText('India shop research example').waitFor();
  await page.getByText('Digital shop operations pilot — India').waitFor();
@@ -38,6 +39,17 @@ try{
  assert.match(await page.locator('#redditExternal').getAttribute('href'),/reddit.com\/r\/india\/search/);
  await page.selectOption('#redditMinimum','1000');assert.equal(await page.locator('#redditPosts article').count(),0);
  assert.match(await page.locator('#redditPosts').innerText(),/No matching posts/);
+ // Source-linked negative-language excerpts filter safely and preserve original links.
+ await page.getByText('Checkout discussion',{exact:true}).waitFor();
+ assert.equal(await page.locator('#sentimentResults article').count(),2);
+ assert.equal(await page.locator('#unsafe-snippet').count(),0);
+ await page.fill('#sentimentQuery','broken');await page.locator('#sentimentForm button').click();
+ await page.selectOption('#sentimentSource','GitHub');assert.equal(await page.locator('#sentimentResults article').count(),1);
+ assert.match(await page.locator('#sentimentResults').innerText(),/Issue report/);
+ await page.fill('#sentimentQuery','unrelatedkeyword');await page.locator('#sentimentForm button').click();
+ assert.equal(await page.locator('#sentimentResults article').count(),0);
+ assert.match(await page.locator('#sentimentResults').innerText(),/No matching excerpts/);
+ assert.equal(await page.locator('#sentimentLinks a').count(),5);
  // Verify audit mode observes real fetch calls without changing their responses.
  assert.equal(await page.locator('#requestAudit').isHidden(),true);
  await page.locator('#auditToggle').click();
