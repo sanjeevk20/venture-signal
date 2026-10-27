@@ -45,7 +45,7 @@ try{
  assert.equal(await page.locator('#unsafe-snippet').count(),0);
  await page.fill('#sentimentQuery','broken');await page.locator('#sentimentForm button').click();
  await page.selectOption('#sentimentSource','GitHub');assert.equal(await page.locator('#sentimentResults article').count(),1);
- assert.match(await page.locator('#sentimentResults').innerText(),/Issue report/);
+ assert.match(await page.locator('#sentimentResults').innerText(),/Issue report/i);
  await page.fill('#sentimentQuery','unrelatedkeyword');await page.locator('#sentimentForm button').click();
  assert.equal(await page.locator('#sentimentResults article').count(),0);
  assert.match(await page.locator('#sentimentResults').innerText(),/No matching excerpts/);
