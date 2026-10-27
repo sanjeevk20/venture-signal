@@ -55,9 +55,13 @@ jobs:
           npm install --prefix /tmp/venture-browser --no-audit --no-fund playwright@1.56.1
           node /tmp/venture-browser/node_modules/playwright/cli.js install --with-deps chromium
       - name: Test the mobile browser interface
+        id: browser
         env:
           BROWSER_MODULE_ROOT: /tmp/venture-browser
         run: node tests/browser-smoke.mjs
+      - name: "Browser check detail: ${{ steps.browser.outputs.browser_failure }}"
+        if: failure() && steps.browser.outcome == 'failure'
+        run: echo "Browser check failed; see step name and logs for the assertion."
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:

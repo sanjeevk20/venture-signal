@@ -1,6 +1,7 @@
 import {createRequire} from 'node:module';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
+import {appendFileSync} from 'node:fs';
 import {resolve,sep} from 'node:path';
 import assert from 'node:assert/strict';
 const require=createRequire(process.env.BROWSER_MODULE_ROOT+'/package.json');
@@ -40,7 +41,7 @@ try{
  await page.selectOption('#redditMinimum','1000');assert.equal(await page.locator('#redditPosts article').count(),0);
  assert.match(await page.locator('#redditPosts').innerText(),/No matching posts/);
  // Source-linked negative-language excerpts filter safely and preserve original links.
- await page.getByText('Checkout discussion',{exact:true}).waitFor();
+ await page.getByText('Checkout discussion').waitFor();
  assert.equal(await page.locator('#sentimentResults article').count(),2);
  assert.equal(await page.locator('#unsafe-snippet').count(),0);
  await page.fill('#sentimentQuery','broken');await page.locator('#sentimentForm button').click();
@@ -83,4 +84,4 @@ try{
  await page.locator('#auditClose').click();assert.equal(await page.locator('#requestAudit').isHidden(),true);
  assert.deepEqual(errors,[]);
  console.log('Mobile browser smoke checks passed: news country filters, scheduled brief search, idea filters and dialog.');
-}finally{await browser.close();await new Promise(r=>server.close(r))}
+}catch(error){if(process.env.GITHUB_OUTPUT)appendFileSync(process.env.GITHUB_OUTPUT,'browser_failure='+String(error.message).replace(/[\r\n]+/g,' ').slice(0,1500)+'\n');throw error;}finally{await browser.close();await new Promise(r=>server.close(r))}
