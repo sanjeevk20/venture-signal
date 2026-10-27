@@ -14,6 +14,7 @@ try{
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.route('**/signals.json',route=>route.fulfill({json:{generated_at:'2026-10-26T08:00:00Z',signals:[{country:'India',topic:'Small business & ecommerce',title:'India shop research example',url:'https://news.google.com/example',publisher:'Test publisher',published_at:'2026-10-26T07:00:00Z'},{country:'United States',topic:'AI & automation',title:'US automation example',url:'https://news.google.com/other',publisher:'Test publisher',published_at:'2026-10-26T07:00:00Z'}],errors:[]}}));
  await page.route('**/ideas.json',route=>route.fulfill({json:{generated_at:'2026-10-26T08:00:00Z',ideas:[{country:'India',topic:'Small business & ecommerce',title:'Digital shop operations pilot — India',keywords:['dukaan','kirana'],evidence_status:'Demand not validated',method:'Template-based exploration brief; not AI-generated',sources:[]}]}}));
+ await page.route('**/reddit.json',route=>route.fulfill({json:{generated_at:'2026-10-26T08:00:00Z',posts:[{title:'Delivery rant with slow service',url:'https://www.reddit.com/r/india/comments/abc/delivery/',subreddit:'india',num_comments:150}],errors:[]}}));
  await page.goto(`http://127.0.0.1:${server.address().port}/`,{waitUntil:'domcontentloaded'});
  await page.getByText('India shop research example').waitFor();
  await page.getByText('Digital shop operations pilot — India').waitFor();
@@ -28,6 +29,15 @@ try{
  await page.locator('#grid [data-view]').click();assert.equal(await page.locator('dialog').isVisible(),true);
  await page.keyboard.press('Escape');assert.equal(await page.locator('dialog').isVisible(),false);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false,'Mobile layout must not overflow horizontally');
+ // Reddit discussions show genuine counts and direct search links, with honest empty states.
+ await page.getByText('Delivery rant with slow service').waitFor();
+ await page.fill('#redditQuery','delivery');await page.locator('#redditForm button').click();
+ assert.equal(await page.locator('#redditPosts article').count(),1);
+ assert.match(await page.locator('#redditPosts').innerText(),/150 comments at refresh/);
+ await page.selectOption('#redditCommunity','india');
+ assert.match(await page.locator('#redditExternal').getAttribute('href'),/reddit.com\/r\/india\/search/);
+ await page.selectOption('#redditMinimum','1000');assert.equal(await page.locator('#redditPosts article').count(),0);
+ assert.match(await page.locator('#redditPosts').innerText(),/No matching posts/);
  // Verify audit mode observes real fetch calls without changing their responses.
  assert.equal(await page.locator('#requestAudit').isHidden(),true);
  await page.locator('#auditToggle').click();

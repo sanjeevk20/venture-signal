@@ -45,3 +45,11 @@ Use **API audit: Off/On** in the header. Logging is off by default. When enabled
 The panel keeps up to 100 action groups and 25 requests per group in tab memory. Its on/off preference survives reloads in the same browser session, but log entries do not. Reload while enabled to capture initial data loading. Clear log resets the display; disabling stops recording. Known credential query parameters are redacted. Search terms may be visible in URLs. Headers, request bodies, response contents, navigation, fonts and script downloads are not logged or uploaded.
 
 Published app data: `https://sanjeevk20.github.io/venture-signal/signals.json` and `https://sanjeevk20.github.io/venture-signal/ideas.json`. Live discussion research calls `https://hn.algolia.com/api/v1/search_by_date` and `https://en.wikipedia.org/w/api.php`. News RSS is fetched by GitHub Actions, not by browser button clicks.
+
+## Reddit pain points
+
+The Reddit section searches the published discussion snapshot and offers direct Reddit searches sorted by comment count. Community filters include r/india, r/indianstartups, r/smallbusiness, r/Entrepreneur, r/startups and r/SaaS. Direct searches cover the last year; scheduled snapshot collection covers the last month. Minimum-comment filters apply only to retrieved snapshot posts. Comments are not automatically classified as complaints.
+
+GitHub Actions attempts a small anonymous Reddit search API collection every refresh. HTTP 401/403/429 stops further requests and is reported without alternate hosts or access workarounds. Reddit may require approved authenticated API access, so snapshot retrieval is not guaranteed. The section remains useful through direct search links when retrieval is unavailable. No million-comment dataset is claimed; no usernames, post bodies or comment bodies are stored. Counts are whole-thread counts at the snapshot time, not counts of negative comments. Country relevance is not verified from community names.
+
+Browser data endpoint: `https://sanjeevk20.github.io/venture-signal/reddit.json`. Scheduled upstream endpoint: `https://www.reddit.com/search.json`. The audit panel records the snapshot fetch, while filtering is local. Opening Reddit is navigation and does not appear as a fetch request.

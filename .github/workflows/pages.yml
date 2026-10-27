@@ -30,13 +30,20 @@ jobs:
           node tests/research.test.mjs
           node --check dist/dynamic.mjs
           node --check dist/audit.js
+          node --check dist/reddit.mjs
+          node tests/reddit.test.mjs
+          python3 tests/test_reddit.py
           node --check scripts/build-ideas.mjs
           node tests/ideas.test.mjs
           python3 tests/test_signals.py
       - name: Refresh public business news
+        id: refresh
         run: |
           python3 scripts/refresh-signals.py
           node scripts/build-ideas.mjs
+          python3 scripts/refresh-reddit.py
+      - name: "Reddit snapshot: ${{ steps.refresh.outputs.reddit_status }} (${{ steps.refresh.outputs.reddit_count }} posts)"
+        run: echo "Reddit availability recorded; direct search links remain available."
       - name: Install browser QA tools
         run: |
           npm install --prefix /tmp/venture-browser --no-audit --no-fund playwright@1.56.1
@@ -74,3 +81,5 @@ jobs:
           python3 -c 'import json; d=json.load(open("/tmp/venture-ideas.json")); assert isinstance(d["ideas"],list); print(str(len(d["ideas"]))+" published idea briefs")'
           curl --fail --retry 3 --retry-delay 5 --max-time 30 "${PAGE_URL%/}/audit.js" -o /tmp/venture-audit.js
           node --check /tmp/venture-audit.js
+          curl --fail --retry 3 --retry-delay 5 --max-time 30 "${PAGE_URL%/}/reddit.json" -o /tmp/venture-reddit.json
+          python3 -c 'import json; d=json.load(open("/tmp/venture-reddit.json")); assert isinstance(d["posts"],list)'
